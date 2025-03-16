@@ -125,5 +125,7 @@ return [
 
     'datetime' => [
         'format' => 'l\, j F Y\, h:i:s A',
-    ]
+    ],
+
+    'currency' => 'IDR',
 ];

@@ -6,6 +6,8 @@ use App\Filament\Resources\TransactionResource\Pages;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Utils\DatetimeUtils;
+use App\Utils\MoneyUtils;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -19,6 +21,7 @@ use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
 
 class TransactionResource extends Resource
 {
@@ -65,7 +68,7 @@ class TransactionResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('amount')
-                    ->money('IDR')
+                    ->money(config('app.currency'))
                     ->label('Total amount')
                     ->sortable(),
 
@@ -106,7 +109,7 @@ class TransactionResource extends Resource
             TextInput::make('amount')
                 ->label('Total amount')
                 ->numeric()
-                ->prefix('Rp')
+                ->prefix(config('app.currency'))
                 ->readOnly()
                 ->minValue(0)
                 ->mask(RawJs::make(static::$rawJsMoneyFormatter))
@@ -145,7 +148,8 @@ class TransactionResource extends Resource
 
                         $product = Product::find($itemData['product_id']);
 
-                        if (! $product) {
+                        if (!$product) {
+                            Log::error('Product not found', ['product_id' => $itemData['product_id']]);
                             return null;
                         }
 
@@ -205,7 +209,7 @@ class TransactionResource extends Resource
             TextInput::make('price')
                 ->label('Price')
                 ->numeric()
-                ->prefix('Rp')
+                ->prefix(config('app.currency'))
                 ->required()
                 ->live()
                 ->default(0)
@@ -223,7 +227,7 @@ class TransactionResource extends Resource
             TextInput::make('total')
                 ->label('Total')
                 ->numeric()
-                ->prefix('Rp')
+                ->prefix(config('app.currency'))
                 ->readOnly()
                 ->live()
                 ->minValue(0)
@@ -241,30 +245,40 @@ class TransactionResource extends Resource
     public static function updateTotal(Get $get, Set $set): void
     {
         $total = static::calculateTotal($get('quantity'), $get('price'));
-        $total = number_format($total, 0, '.', ',');
+        $total = MoneyUtils::format($total);
         $set('total', $total);
     }
 
     public static function updateTransactionAmount(Get $get, Set $set): void
     {
-        $selectedProducts = collect($get('products'))->filter(fn($item) => !empty($item['product_id']) && !empty($item['quantity']) && !empty($item['price']));
+        $products = $get('products') ?? [];
+
+        $selectedProducts = collect($products)->filter(
+            fn($item) => !empty($item['product_id']) && !empty($item['quantity']) && !empty($item['price'])
+        );
 
         $subtotal = $selectedProducts->reduce(function ($subtotal, $product) {
             return $subtotal + static::calculateTotal($product['quantity'], $product['price']);
         }, 0);
 
-        $subtotal = number_format($subtotal, 0, '.', ',');
+        $subtotal = MoneyUtils::format($subtotal);
 
         $set('amount', $subtotal);
     }
 
     public static function calculateTotal(?string $quantity, ?string $price): int
     {
-        if ($quantity === null || $price === null) {
+        if ($quantity === null || $price === null || !is_numeric($quantity)) {
             return 0;
         }
 
         $price = (int) str_replace(',', '', $price);
+        $quantity = (int) $quantity;
+
+        // Additional safety check
+        if ($quantity < 0 || $price < 0) {
+            return 0;
+        }
 
         return $quantity * $price;
     }

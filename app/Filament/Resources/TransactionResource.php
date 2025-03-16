@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TransactionResource\Pages;
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Utils\DatetimeUtils;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -24,6 +25,8 @@ class TransactionResource extends Resource
     protected static ?string $model = Transaction::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    protected static string $rawJsMoneyFormatter = '$money($input)';
 
     public static function form(Form $form): Form
     {
@@ -58,7 +61,7 @@ class TransactionResource extends Resource
 
                 TextColumn::make('created_at')
                     ->label('Transaction date')
-                    ->dateTime(format: 'l\, j F Y\, h:i:s A', timezone: config('app.timezone'))
+                    ->dateTime(format: config('app.datetime.format'), timezone: config('app.timezone'))
                     ->sortable(),
 
                 TextColumn::make('amount')
@@ -105,7 +108,8 @@ class TransactionResource extends Resource
                 ->numeric()
                 ->prefix('Rp')
                 ->readOnly()
-                ->mask(RawJs::make('$money($input)'))
+                ->minValue(0)
+                ->mask(RawJs::make(static::$rawJsMoneyFormatter))
                 ->stripCharacters(',')
                 ->afterStateHydrated(function (Get $get, Set $set) {
                     if ($get('amount') === null) {
@@ -117,13 +121,13 @@ class TransactionResource extends Resource
                 ->label('Transaction date')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone(config('app.timezone'))->format('l, j F Y, h:i:s A')),
+                ->formatStateUsing(fn($state) => DatetimeUtils::defaultFormat($state)),
 
             TextInput::make('updated_at')
                 ->label('Updated at')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone(config('app.timezone'))->format('l, j F Y, h:i:s A')),
+                ->formatStateUsing(fn($state) => DatetimeUtils::defaultFormat($state)),
         ];
     }
 
@@ -131,72 +135,7 @@ class TransactionResource extends Resource
     {
         return Repeater::make('products')
             ->relationship()
-            ->schema([
-                Select::make('product_id')
-                    ->relationship('product', 'name')
-                    ->label('Product')
-                    ->options(Product::query()->pluck('name', 'id'))
-                    ->required()
-                    ->reactive()
-                    ->distinct()
-                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                    ->columnSpan([
-                        'md' => 3,
-                    ])
-                    ->searchable()
-                    ->createOptionForm(ProductResource::getSchema())
-                    ->createOptionAction(function (Action $action) {
-                        return $action
-                            ->modalHeading('Create product')
-                            ->modalSubmitActionLabel('Create product')
-                            ->modalWidth('lg');
-                    }),
-
-                TextInput::make('quantity')
-                    ->label('Quantity')
-                    ->numeric()
-                    ->default(1)
-                    ->minValue(1)
-                    ->live()
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        static::updateTotal($get, $set);
-                    })
-                    ->columnSpan([
-                        'md' => 1,
-                    ])
-                    ->required(),
-
-                TextInput::make('price')
-                    ->label('Price')
-                    ->numeric()
-                    ->prefix('Rp')
-                    ->required()
-                    ->live()
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->step(1000)
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        static::updateTotal($get, $set);
-                    })
-                    ->columnSpan([
-                        'md' => 3,
-                    ]),
-
-                TextInput::make('total')
-                    ->label('Total')
-                    ->numeric()
-                    ->prefix('Rp')
-                    ->readOnly()
-                    ->live()
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->afterStateHydrated(function (Get $get, Set $set) {
-                        static::updateTotal($get, $set);
-                    })
-                    ->columnSpan([
-                        'md' => 3,
-                    ]),
-            ])
+            ->schema(static::getTransactionProductSchema())
             ->extraItemActions([
                 Action::make('openProduct')
                     ->tooltip('Open product')
@@ -224,6 +163,79 @@ class TransactionResource extends Resource
                 'md' => 10,
             ])
             ->required();
+    }
+
+    public static function getTransactionProductSchema(): array
+    {
+        return [
+            Select::make('product_id')
+                ->relationship('product', 'name')
+                ->label('Product')
+                ->options(Product::query()->pluck('name', 'id'))
+                ->required()
+                ->reactive()
+                ->distinct()
+                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                ->columnSpan([
+                    'md' => 3,
+                ])
+                ->searchable()
+                ->createOptionForm(ProductResource::getSchema())
+                ->createOptionAction(function (Action $action) {
+                    return $action
+                        ->modalHeading('Create product')
+                        ->modalSubmitActionLabel('Create product')
+                        ->modalWidth('lg');
+                }),
+
+            TextInput::make('quantity')
+                ->label('Quantity')
+                ->numeric()
+                ->default(1)
+                ->minValue(1)
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::updateTotal($get, $set);
+                })
+                ->columnSpan([
+                    'md' => 1,
+                ])
+                ->required(),
+
+            TextInput::make('price')
+                ->label('Price')
+                ->numeric()
+                ->prefix('Rp')
+                ->required()
+                ->live()
+                ->default(0)
+                ->minValue(0)
+                ->mask(RawJs::make(static::$rawJsMoneyFormatter))
+                ->stripCharacters(',')
+                ->step(1000)
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::updateTotal($get, $set);
+                })
+                ->columnSpan([
+                    'md' => 3,
+                ]),
+
+            TextInput::make('total')
+                ->label('Total')
+                ->numeric()
+                ->prefix('Rp')
+                ->readOnly()
+                ->live()
+                ->minValue(0)
+                ->mask(RawJs::make(static::$rawJsMoneyFormatter))
+                ->stripCharacters(',')
+                ->afterStateHydrated(function (Get $get, Set $set) {
+                    static::updateTotal($get, $set);
+                })
+                ->columnSpan([
+                    'md' => 3,
+                ]),
+        ];
     }
 
     public static function updateTotal(Get $get, Set $set): void

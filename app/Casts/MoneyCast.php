@@ -3,7 +3,6 @@
 namespace App\Casts;
 
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
-use Illuminate\Database\Eloquent\Model;
 
 class MoneyCast implements CastsAttributes
 {

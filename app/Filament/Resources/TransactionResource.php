@@ -77,7 +77,8 @@ class TransactionResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
@@ -116,13 +117,13 @@ class TransactionResource extends Resource
                 ->label('Transaction date')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone('Asia/Jakarta')->format('l, j F Y, h:i:s A')),
+                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone(config('app.timezone'))->format('l, j F Y, h:i:s A')),
 
             TextInput::make('updated_at')
                 ->label('Updated at')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone('Asia/Jakarta')->format('l, j F Y, h:i:s A')),
+                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->timezone(config('app.timezone'))->format('l, j F Y, h:i:s A')),
         ];
     }
 
@@ -155,6 +156,7 @@ class TransactionResource extends Resource
                     ->label('Quantity')
                     ->numeric()
                     ->default(1)
+                    ->minValue(1)
                     ->live()
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         static::updateTotal($get, $set);

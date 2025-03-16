@@ -3,10 +3,9 @@
 namespace App\Models;
 
 use App\Casts\MoneyCast;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class TransactionProduct extends Model
+class TransactionProduct extends FilamentModel
 {
     protected $casts = [
         'price' => MoneyCast::class,

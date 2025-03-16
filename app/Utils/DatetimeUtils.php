@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class DatetimeUtils
 {
-    public static function defaultFormat(string $datetime): string
+    public static function defaultFormat(?string $datetime): string
     {
         try {
             return Carbon::parse($datetime)->timezone(config('app.timezone'))->format(config('app.datetime.format'));

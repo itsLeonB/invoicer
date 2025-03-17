@@ -45,7 +45,7 @@ class TransactionResource extends Resource
                             ->modalDescription('All existing products will be removed from the transaction.')
                             ->requiresConfirmation()
                             ->color('danger')
-                            ->action(fn(Set $set) => $set('products', [])),
+                            ->action(fn (Set $set) => $set('products', [])),
                     ])
                     ->schema([
                         static::getProductsRepeater(),
@@ -123,13 +123,13 @@ class TransactionResource extends Resource
                 ->label('Transaction date')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => DatetimeUtils::defaultFormat($state)),
+                ->formatStateUsing(fn ($state) => DatetimeUtils::defaultFormat($state)),
 
             TextInput::make('updated_at')
                 ->label('Updated at')
                 ->disabled()
                 ->dehydrated(false) // Exclude from form submission
-                ->formatStateUsing(fn($state) => DatetimeUtils::defaultFormat($state)),
+                ->formatStateUsing(fn ($state) => DatetimeUtils::defaultFormat($state)),
         ];
     }
 
@@ -147,14 +147,15 @@ class TransactionResource extends Resource
 
                         $product = Product::find($itemData['product_id']);
 
-                        if (!$product) {
+                        if (! $product) {
                             Log::error('Product not found', ['product_id' => $itemData['product_id']]);
+
                             return null;
                         }
 
                         return ProductResource::getUrl('edit', ['record' => $product]);
                     }, shouldOpenInNewTab: true)
-                    ->hidden(fn(array $arguments, Repeater $component): bool => blank($component->getRawItemState($arguments['item'])['product_id'])),
+                    ->hidden(fn (array $arguments, Repeater $component): bool => blank($component->getRawItemState($arguments['item'])['product_id'])),
             ])
             ->defaultItems(1)
             ->hiddenLabel()
@@ -257,7 +258,7 @@ class TransactionResource extends Resource
         $products = $get('products') ?? [];
 
         $selectedProducts = collect($products)->filter(
-            fn($item) => !empty($item['product_id']) && !empty($item['quantity']) && !empty($item['price'])
+            fn ($item) => ! empty($item['product_id']) && ! empty($item['quantity']) && ! empty($item['price'])
         );
 
         $subtotal = $selectedProducts->reduce(function ($subtotal, $product) {
@@ -271,7 +272,7 @@ class TransactionResource extends Resource
 
     public static function calculateTotal(?string $quantity, ?string $price): int
     {
-        if ($quantity === null || $price === null || !is_numeric($quantity)) {
+        if ($quantity === null || $price === null || ! is_numeric($quantity)) {
             return 0;
         }
 

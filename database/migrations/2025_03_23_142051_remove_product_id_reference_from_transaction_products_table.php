@@ -53,5 +53,10 @@ return new class extends Migration
         Schema::table('transaction_products', function (Blueprint $table) {
             $table->dropColumn('product_name');
         });
+
+        // Step 4: Re-add the foreign key constraint
+        Schema::table('transaction_products', function (Blueprint $table) {
+            $table->foreign('product_id')->references('id')->on('products');
+        });
     }
 };

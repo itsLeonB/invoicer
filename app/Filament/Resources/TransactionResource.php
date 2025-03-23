@@ -20,7 +20,6 @@ use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Log;
 
 class TransactionResource extends Resource
 {
@@ -138,25 +137,6 @@ class TransactionResource extends Resource
         return Repeater::make('products')
             ->relationship()
             ->schema(static::getTransactionProductSchema())
-            ->extraItemActions([
-                Action::make('openProduct')
-                    ->tooltip('Open product')
-                    ->icon('heroicon-m-arrow-top-right-on-square')
-                    ->url(function (array $arguments, Repeater $component): ?string {
-                        $itemData = $component->getRawItemState($arguments['item']);
-
-                        $product = Product::find($itemData['product_id']);
-
-                        if (! $product) {
-                            Log::error('Product not found', ['product_id' => $itemData['product_id']]);
-
-                            return null;
-                        }
-
-                        return ProductResource::getUrl('edit', ['record' => $product]);
-                    }, shouldOpenInNewTab: true)
-                    ->hidden(fn (array $arguments, Repeater $component): bool => blank($component->getRawItemState($arguments['item'])['product_id'])),
-            ])
             ->defaultItems(1)
             ->hiddenLabel()
             ->live()
@@ -173,10 +153,9 @@ class TransactionResource extends Resource
     public static function getTransactionProductSchema(): array
     {
         return [
-            Select::make('product_id')
-                ->relationship('product', 'name')
+            Select::make('product_name')
                 ->label('Product')
-                ->options(Product::query()->pluck('name', 'id'))
+                ->options(Product::query()->pluck('name', 'name'))
                 ->required()
                 ->reactive()
                 ->distinct()
@@ -191,6 +170,8 @@ class TransactionResource extends Resource
                         ->modalHeading('Create product')
                         ->modalSubmitActionLabel('Create product')
                         ->modalWidth('lg');
+                })->createOptionUsing(function (array $data): string {
+                    return Product::create($data)->name;
                 }),
 
             TextInput::make('quantity')
@@ -258,7 +239,7 @@ class TransactionResource extends Resource
         $products = $get('products') ?? [];
 
         $selectedProducts = collect($products)->filter(
-            fn ($item) => ! empty($item['product_id']) && ! empty($item['quantity']) && ! empty($item['price'])
+            fn ($item) => ! empty($item['quantity']) && ! empty($item['price'])
         );
 
         $subtotal = $selectedProducts->reduce(function ($subtotal, $product) {

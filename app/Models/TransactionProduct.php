@@ -12,11 +12,6 @@ class TransactionProduct extends FilamentModel
         'total' => MoneyCast::class,
     ];
 
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
-    }
-
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);

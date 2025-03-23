@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Utils\DatetimeUtils;
 use App\Utils\MoneyUtils;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -20,6 +21,8 @@ use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Blade;
 
 class TransactionResource extends Resource
 {
@@ -76,6 +79,36 @@ class TransactionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+
+                Tables\Actions\Action::make('preview-invoice')
+                    ->label('Preview Invoice')
+                    ->color('success')
+                    ->icon('heroicon-m-eye')
+                    ->url(function (Transaction $transaction) {
+                        return route('invoice.preview', ['transaction' => $transaction->id]);
+                    })
+                    ->openUrlInNewTab(),
+
+                Tables\Actions\Action::make('download-invoice')
+                    ->label('Download Invoice')
+                    ->color('success')
+                    ->icon('heroicon-m-arrow-down-tray')
+                    ->action(function (Model $record) {
+                        $pdf = Pdf::loadHtml(
+                            Blade::render('invoice', ['record' => $record])
+                        );
+
+                        return response()->streamDownload(
+                            function () use ($pdf) {
+                                echo $pdf->stream();
+                            },
+                            'invoice-'.$record->id.'.pdf',
+                            [
+                                'Content-Type' => 'application/pdf',
+                                'Content-Disposition' => 'inline; filename="invoice-'.$record->id.'.pdf"',
+                            ]
+                        );
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -1,11 +1,20 @@
 <?php
 
+use App\Http\Controllers\Auth\SimpleLoginController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Middleware\SimpleAuth;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('login', [SimpleLoginController::class, 'showLogin'])->name('login');
+Route::post('login', [SimpleLoginController::class, 'login'])->name('login.store');
+Route::post('logout', [SimpleLoginController::class, 'logout'])->name('logout');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+Route::middleware(SimpleAuth::class)->group(function () {
+    Route::get('/', [InvoiceController::class, 'create'])->name('invoices.create');
+    Route::post('/invoices/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
+    Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+    Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('/invoices/{filename}/download', [InvoiceController::class, 'download'])->name('invoices.download');
 });
 
 require __DIR__.'/settings.php';

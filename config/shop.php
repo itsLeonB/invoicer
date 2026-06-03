@@ -8,4 +8,8 @@ return [
 
     'phone' => env('SHOP_PHONE', ''),
 
+    'bca_account_name' => env('SHOP_BCA_ACCOUNT_NAME', ''),
+
+    'bca_account_number' => env('SHOP_BCA_ACCOUNT_NUMBER', ''),
+
 ];

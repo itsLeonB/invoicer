@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { Download } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { Download, Eye } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 
@@ -56,15 +56,24 @@ export default function Index({ invoices }: Props) {
                                         <td className="py-3">{invoice.customer_name}</td>
                                         <td className="py-3 text-right">{formatCurrency(invoice.total)}</td>
                                         <td className="py-3 text-right">
-                                            <Button variant="ghost" size="sm" asChild>
-                                                <a
-                                                    href={`/invoices/${invoice.filename}/download`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <Download /> Download
-                                                </a>
-                                            </Button>
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <a
+                                                        href={`/invoices/${invoice.filename}/view`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Eye /> View
+                                                    </a>
+                                                </Button>
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <a
+                                                        href={`/invoices/${invoice.filename}/download`}
+                                                    >
+                                                        <Download /> Download
+                                                    </a>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

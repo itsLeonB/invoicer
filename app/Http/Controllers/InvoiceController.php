@@ -92,4 +92,14 @@ class InvoiceController extends Controller
 
         return Storage::download("invoices/{$filename}");
     }
+
+    public function show(string $filename): HttpResponse
+    {
+        abort_unless(Storage::exists("invoices/{$filename}"), 404);
+
+        return response(Storage::get("invoices/{$filename}"), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
+    }
 }

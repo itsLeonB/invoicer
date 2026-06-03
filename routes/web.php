@@ -15,6 +15,7 @@ Route::middleware(SimpleAuth::class)->group(function () {
     Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{filename}/download', [InvoiceController::class, 'download'])->name('invoices.download');
+    Route::get('/invoices/{filename}/view', [InvoiceController::class, 'show'])->name('invoices.show');
 });
 
 require __DIR__.'/settings.php';

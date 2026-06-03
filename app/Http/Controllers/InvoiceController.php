@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInvoiceRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\PDF as DomPDF;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,39 +21,18 @@ class InvoiceController extends Controller
 
     public function preview(StoreInvoiceRequest $request): HttpResponse
     {
-        $data = $request->validated();
-
-        $total = collect($data['items'])->sum(fn (array $item) => $item['quantity'] * $item['unit_price']);
-
-        $pdf = Pdf::loadView('pdf.invoice', [
-            'date' => $data['date'],
-            'customerName' => $data['customer_name'],
-            'customerMobile' => $data['customer_mobile'],
-            'items' => $data['items'],
-            'total' => $total,
-            'shop' => config('shop'),
-        ]);
-
-        return $pdf->stream('preview.pdf');
+        return $this->generatePdf($request->validated())->stream('preview.pdf');
     }
 
     public function store(StoreInvoiceRequest $request): HttpResponse
     {
         $data = $request->validated();
+        $pdf = $this->generatePdf($data);
 
         $total = collect($data['items'])->sum(fn (array $item) => $item['quantity'] * $item['unit_price']);
-
-        $pdf = Pdf::loadView('pdf.invoice', [
-            'date' => $data['date'],
-            'customerName' => $data['customer_name'],
-            'customerMobile' => $data['customer_mobile'],
-            'items' => $data['items'],
-            'total' => $total,
-            'shop' => config('shop'),
-        ]);
-
         $slug = Str::slug($data['customer_name']);
-        $filename = "{$data['date']}_{$slug}_{$total}.pdf";
+        $timestamp = now()->format('His');
+        $filename = "{$data['date']}_{$slug}_{$total}_{$timestamp}.pdf";
 
         Storage::makeDirectory('invoices');
         Storage::put("invoices/{$filename}", $pdf->output());
@@ -68,7 +48,7 @@ class InvoiceController extends Controller
             ->filter(fn (string $path) => str_ends_with($path, '.pdf'))
             ->map(function (string $path) {
                 $filename = basename($path, '.pdf');
-                $parts = explode('_', $filename, 3);
+                $parts = explode('_', $filename, 4);
 
                 return [
                     'filename' => basename($path),
@@ -88,14 +68,14 @@ class InvoiceController extends Controller
 
     public function download(string $filename): StreamedResponse
     {
-        abort_unless(Storage::exists("invoices/{$filename}"), 404);
+        $this->validateFilename($filename);
 
         return Storage::download("invoices/{$filename}");
     }
 
     public function show(string $filename): HttpResponse
     {
-        abort_unless(Storage::exists("invoices/{$filename}"), 404);
+        $this->validateFilename($filename);
 
         return response(Storage::get("invoices/{$filename}"), 200, [
             'Content-Type' => 'application/pdf',
@@ -105,10 +85,32 @@ class InvoiceController extends Controller
 
     public function destroy(string $filename)
     {
-        abort_unless(Storage::exists("invoices/{$filename}"), 404);
+        $this->validateFilename($filename);
 
         Storage::delete("invoices/{$filename}");
 
         return redirect()->route('invoices.index');
+    }
+
+    private function generatePdf(array $data): DomPDF
+    {
+        $total = collect($data['items'])->sum(fn (array $item) => $item['quantity'] * $item['unit_price']);
+
+        return Pdf::loadView('pdf.invoice', [
+            'date' => $data['date'],
+            'customerName' => $data['customer_name'],
+            'customerMobile' => $data['customer_mobile'],
+            'items' => $data['items'],
+            'total' => $total,
+            'shop' => config('shop'),
+        ]);
+    }
+
+    private function validateFilename(string $filename): void
+    {
+        abort_unless(
+            ! str_contains($filename, '/') && ! str_contains($filename, '..') && Storage::exists("invoices/{$filename}"),
+            404
+        );
     }
 }

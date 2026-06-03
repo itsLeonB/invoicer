@@ -11,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { destroy, download, show } from '@/routes/invoices';
 
 type Invoice = {
     filename: string;
@@ -36,7 +37,7 @@ export default function Index({ invoices }: Props) {
 
     const handleDelete = () => {
         if (!deleting) return;
-        router.delete(`/invoices/${deleting}`, {
+        router.delete(destroy.url(deleting), {
             onFinish: () => setDeleting(null),
         });
     };
@@ -77,7 +78,7 @@ export default function Index({ invoices }: Props) {
                                             <div className="flex justify-end gap-1">
                                                 <Button variant="ghost" size="sm" asChild>
                                                     <a
-                                                        href={`/invoices/${invoice.filename}/view`}
+                                                        href={show.url(invoice.filename)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >
@@ -85,9 +86,7 @@ export default function Index({ invoices }: Props) {
                                                     </a>
                                                 </Button>
                                                 <Button variant="ghost" size="sm" asChild>
-                                                    <a
-                                                        href={`/invoices/${invoice.filename}/download`}
-                                                    >
+                                                    <a href={download.url(invoice.filename)}>
                                                         <Download /> Download
                                                     </a>
                                                 </Button>

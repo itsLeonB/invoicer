@@ -7,8 +7,10 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { preview, store } from '@/routes/invoices';
 
 type LineItem = {
+    id: number;
     description: string;
     quantity: number;
     unit_price: number;
@@ -16,16 +18,23 @@ type LineItem = {
 
 type Errors = Record<string, string>;
 
+let nextId = 1;
+
+function createItem(): LineItem {
+    return { id: nextId++, description: '', quantity: 1, unit_price: 0 };
+}
+
 export default function Create() {
-    const [items, setItems] = useState<LineItem[]>([
-        { description: '', quantity: 1, unit_price: 0 },
-    ]);
+    const [items, setItems] = useState<LineItem[]>([createItem()]);
     const [processing, setProcessing] = useState(false);
     const [previewing, setPreviewing] = useState(false);
     const [errors, setErrors] = useState<Errors>({});
     const [customerName, setCustomerName] = useState('');
     const [customerMobile, setCustomerMobile] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
     const formRef = useRef<HTMLFormElement>(null);
 
     const total = items.reduce(
@@ -38,7 +47,7 @@ export default function Create() {
         customerMobile.trim() !== '' &&
         items.every((item) => item.description.trim() !== '' && item.quantity > 0 && item.unit_price > 0);
 
-    const updateItem = (index: number, field: keyof LineItem, value: string) => {
+    const updateItem = (index: number, field: keyof Omit<LineItem, 'id'>, value: string) => {
         setItems((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
@@ -49,7 +58,7 @@ export default function Create() {
     };
 
     const addItem = () => {
-        setItems((prev) => [...prev, { description: '', quantity: 1, unit_price: 0 }]);
+        setItems((prev) => [...prev, createItem()]);
     };
 
     const removeItem = (index: number) => {
@@ -66,20 +75,14 @@ export default function Create() {
         }).format(amount);
     };
 
-    const getFormData = () => {
-        if (!formRef.current) return null;
-        return {
-            date,
-            customer_name: customerName,
-            customer_mobile: customerMobile,
-            items,
-        };
-    };
+    const getFormData = () => ({
+        date,
+        customer_name: customerName,
+        customer_mobile: customerMobile,
+        items: items.map(({ description, quantity, unit_price }) => ({ description, quantity, unit_price })),
+    });
 
     const submitToEndpoint = async (url: string, setLoading: (v: boolean) => void) => {
-        const data = getFormData();
-        if (!data) return;
-
         setLoading(true);
         setErrors({});
 
@@ -93,7 +96,7 @@ export default function Create() {
                     'X-CSRF-TOKEN': csrfToken,
                     Accept: 'application/pdf',
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(getFormData()),
             });
 
             if (response.status === 422) {
@@ -109,19 +112,26 @@ export default function Create() {
 
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
-            window.open(blobUrl, '_blank');
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         } finally {
             setLoading(false);
         }
     };
 
     const handlePreview = () => {
-        submitToEndpoint('/invoices/preview', setPreviewing);
+        submitToEndpoint(preview.url(), setPreviewing);
     };
 
     const handleGenerate = (e: FormEvent) => {
         e.preventDefault();
-        submitToEndpoint('/invoices', setProcessing);
+        submitToEndpoint(store.url(), setProcessing);
     };
 
     return (
@@ -207,7 +217,7 @@ export default function Create() {
                                         </thead>
                                         <tbody className="divide-y">
                                             {items.map((item, index) => (
-                                                <tr key={index} className="group">
+                                                <tr key={item.id} className="group">
                                                     <td className="py-3 pr-2">
                                                         <Input
                                                             placeholder="Item description"
@@ -272,7 +282,7 @@ export default function Create() {
 
                                     <div className="mb-2 space-y-2">
                                         <Label htmlFor="date">Transaction Date</Label>
-                                        <DatePicker value={date} onChange={setDate} />
+                                        <DatePicker id="date" value={date} onChange={setDate} />
                                         <InputError message={errors.date} />
                                     </div>
 

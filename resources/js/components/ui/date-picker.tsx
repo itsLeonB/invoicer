@@ -12,10 +12,12 @@ export function DatePicker({
     value,
     onChange,
     className,
+    id,
 }: {
     value: string;
     onChange: (value: string) => void;
     className?: string;
+    id?: string;
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,7 +28,9 @@ export function DatePicker({
                 'focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]',
                 className,
             )}
-            onClick={() => inputRef.current?.showPicker()}
+            onClick={() => {
+                try { inputRef.current?.showPicker(); } catch { inputRef.current?.focus(); }
+            }}
         >
             <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
             <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
@@ -34,6 +38,7 @@ export function DatePicker({
             </span>
             <input
                 ref={inputRef}
+                id={id}
                 type="date"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}

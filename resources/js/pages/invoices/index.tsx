@@ -1,0 +1,140 @@
+import { Head, router } from '@inertiajs/react';
+import { Download, Eye, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import Heading from '@/components/heading';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { destroy, download, show } from '@/routes/invoices';
+
+type Invoice = {
+    filename: string;
+    date: string;
+    customer_name: string;
+    total: number;
+};
+
+type Props = {
+    invoices: Invoice[];
+};
+
+export default function Index({ invoices }: Props) {
+    const [deleting, setDeleting] = useState<string | null>(null);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        }).format(amount);
+    };
+
+    const handleDelete = () => {
+        if (!deleting) return;
+        router.delete(destroy.url(deleting), {
+            onFinish: () => setDeleting(null),
+        });
+    };
+
+    return (
+        <>
+            <Head title="Invoices" />
+
+            <div className="mx-auto w-full max-w-4xl p-4">
+                <Heading
+                    variant="small"
+                    title="Invoices"
+                    description="All previously generated invoices"
+                />
+
+                {invoices.length === 0 ? (
+                    <p className="mt-6 text-sm text-muted-foreground">
+                        No invoices yet. Create your first invoice to get started.
+                    </p>
+                ) : (
+                    <div className="mt-6 overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="border-b text-muted-foreground">
+                                <tr>
+                                    <th className="pb-3 font-medium">Date</th>
+                                    <th className="pb-3 font-medium">Customer</th>
+                                    <th className="pb-3 text-right font-medium">Total</th>
+                                    <th className="pb-3 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {invoices.map((invoice) => (
+                                    <tr key={invoice.filename}>
+                                        <td className="py-3">{invoice.date}</td>
+                                        <td className="py-3">{invoice.customer_name}</td>
+                                        <td className="py-3 text-right">{formatCurrency(invoice.total)}</td>
+                                        <td className="py-3 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <a
+                                                        href={show.url(invoice.filename)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Eye /> View
+                                                    </a>
+                                                </Button>
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <a href={download.url(invoice.filename)}>
+                                                        <Download /> Download
+                                                    </a>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setDeleting(invoice.filename)}
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 /> Delete
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Invoice</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this invoice? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleting(null)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+}
+
+Index.layout = {
+    breadcrumbs: [
+        {
+            title: 'Invoices',
+            href: '/invoices',
+        },
+    ],
+};

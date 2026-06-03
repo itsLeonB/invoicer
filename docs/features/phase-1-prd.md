@@ -38,7 +38,6 @@ Workshop info (business name, logo, address, phone) is pre-configured — no nee
 On form submission, the system generates a professional A4 PDF invoice containing:
 
 - Your workshop header with business logo
-- Auto-generated invoice number
 - Transaction date
 - Customer name and mobile number
 - Itemized table of parts/supplies with quantities and prices
@@ -68,8 +67,7 @@ The PDF is automatically saved to cloud storage and displayed to the user for do
 
 ## Technical Notes (for reference)
 
-- Built with Laravel (PHP framework)
-- React + TailwindCSS + shadcn/ui frontend
+- Built with Laravel (PHP framework) + React + TailwindCSS
 - PDF generated via DomPDF library
 - No database — file/session-based storage
 - Authentication via environment variables

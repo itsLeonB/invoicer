@@ -1,7 +1,16 @@
-import { Head } from '@inertiajs/react';
-import { Download, Eye } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { Download, Eye, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 type Invoice = {
     filename: string;
@@ -15,12 +24,21 @@ type Props = {
 };
 
 export default function Index({ invoices }: Props) {
+    const [deleting, setDeleting] = useState<string | null>(null);
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
         }).format(amount);
+    };
+
+    const handleDelete = () => {
+        if (!deleting) return;
+        router.delete(`/invoices/${deleting}`, {
+            onFinish: () => setDeleting(null),
+        });
     };
 
     return (
@@ -46,7 +64,7 @@ export default function Index({ invoices }: Props) {
                                     <th className="pb-3 font-medium">Date</th>
                                     <th className="pb-3 font-medium">Customer</th>
                                     <th className="pb-3 text-right font-medium">Total</th>
-                                    <th className="pb-3 text-right font-medium">Action</th>
+                                    <th className="pb-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -73,6 +91,14 @@ export default function Index({ invoices }: Props) {
                                                         <Download /> Download
                                                     </a>
                                                 </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setDeleting(invoice.filename)}
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 /> Delete
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -82,6 +108,25 @@ export default function Index({ invoices }: Props) {
                     </div>
                 )}
             </div>
+
+            <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Invoice</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this invoice? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleting(null)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

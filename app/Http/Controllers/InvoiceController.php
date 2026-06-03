@@ -102,4 +102,13 @@ class InvoiceController extends Controller
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
+
+    public function destroy(string $filename)
+    {
+        abort_unless(Storage::exists("invoices/{$filename}"), 404);
+
+        Storage::delete("invoices/{$filename}");
+
+        return redirect()->route('invoices.index');
+    }
 }

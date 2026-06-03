@@ -3,6 +3,7 @@ import { Eye, Plus, Send, Trash2 } from 'lucide-react';
 import { type FormEvent, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -24,6 +25,7 @@ export default function Create() {
     const [errors, setErrors] = useState<Errors>({});
     const [customerName, setCustomerName] = useState('');
     const [customerMobile, setCustomerMobile] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const formRef = useRef<HTMLFormElement>(null);
 
     const total = items.reduce(
@@ -66,9 +68,8 @@ export default function Create() {
 
     const getFormData = () => {
         if (!formRef.current) return null;
-        const formData = new FormData(formRef.current);
         return {
-            date: formData.get('date') as string,
+            date,
             customer_name: customerName,
             customer_mobile: customerMobile,
             items,
@@ -271,13 +272,7 @@ export default function Create() {
 
                                     <div className="mb-2 space-y-2">
                                         <Label htmlFor="date">Transaction Date</Label>
-                                        <Input
-                                            id="date"
-                                            type="date"
-                                            name="date"
-                                            defaultValue={new Date().toISOString().split('T')[0]}
-                                            required
-                                        />
+                                        <DatePicker value={date} onChange={setDate} />
                                         <InputError message={errors.date} />
                                     </div>
 

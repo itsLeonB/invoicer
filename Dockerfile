@@ -35,6 +35,7 @@ RUN npm ci
 COPY . .
 COPY --from=composer /app/resources/js/actions ./resources/js/actions
 COPY --from=composer /app/resources/js/routes ./resources/js/routes
+COPY --from=composer /app/resources/js/wayfinder ./resources/js/wayfinder
 RUN SKIP_WAYFINDER=1 npm run build
 
 # --- Final image ---

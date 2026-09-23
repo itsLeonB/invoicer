@@ -13,15 +13,6 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# --- Build stage for frontend assets ---
-FROM node:20-alpine AS frontend
-
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-RUN SKIP_WAYFINDER=1 npm run build
-
 # --- Build stage for composer deps ---
 FROM composer:2 AS composer
 
@@ -30,6 +21,21 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
 COPY . .
 RUN composer dump-autoload --optimize
+RUN mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions bootstrap/cache \
+    && cp .env.example .env \
+    && php artisan key:generate --force \
+    && php artisan wayfinder:generate
+
+# --- Build stage for frontend assets ---
+FROM node:20-alpine AS frontend
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+COPY --from=composer /app/resources/js/actions ./resources/js/actions
+COPY --from=composer /app/resources/js/routes ./resources/js/routes
+RUN SKIP_WAYFINDER=1 npm run build
 
 # --- Final image ---
 FROM base
